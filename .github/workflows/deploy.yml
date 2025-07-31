@@ -32,7 +32,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: npm # 或 pnpm / yarn
 
       # - name: Setup Pages # 不再需要，因为我们不使用 actions/configure-pages
