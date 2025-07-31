@@ -3,8 +3,8 @@ name: Deploy VitePress site to Pages (via git push with custom GH_TOKEN)
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
