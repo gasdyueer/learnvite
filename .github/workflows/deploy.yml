@@ -51,7 +51,7 @@ jobs:
 
       - name: Deploy to GitHub Pages
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用内置的 GITHUB_TOKEN
+          GH_TOKEN: ${{ secrets.GH_TOKEN }} # 使用内置的 GITHUB_TOKEN
         run: |
           # 假设 VitePress 构建到 docs/.vitepress/dist
           cd docs/.vitepress/dist
@@ -68,10 +68,10 @@ jobs:
           # 注意：请将 gasdyueer/myhexo 替换为您的实际仓库名
           # 例如：git push origin HEAD:gh-pages -f
           # 对于同一个仓库，origin 已经是您的仓库
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:gh-pages -f
+          git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:gh-pages -f
 
 # 请注意：
 # 1. 您需要在您的仓库设置中手动启用 GitHub Pages，并选择从 `gh-pages` 分支提供服务。
-# 2. `GH_TOKEN` 环境变量被更改为内置的 `secrets.GITHUB_TOKEN`，它在工作流运行时自动提供，并且根据 `permissions` 中的设置具有相应的权限。您不需要在仓库 Secrets 中手动创建 `GH_TOKEN`。
+# 2. `GH_TOKEN` 环境变量被更改为内置的 `secrets.GH_TOKEN`，它在工作流运行时自动提供，并且根据 `permissions` 中的设置具有相应的权限。您不需要在仓库 Secrets 中手动创建 `GH_TOKEN`。
 # 3. `cd docs/.vitepress/dist` 是关键，确保在正确的构建输出目录中执行 Git 命令。
 # 4. `github.repository` 会自动获取当前仓库的拥有者和名称 (例如 `your-username/your-repo-name`)。
