@@ -1,21 +1,17 @@
 # 构建 VitePress 站点并将其部署到 GitHub Pages 的示例工作流程
-#
-name: Deploy VitePress site to Pages
+# (修改为使用 git push 部署，类似 Hexo 风格)
+name: Deploy VitePress site to Pages (via git push)
 
 on:
-  # 在针对 `main` 分支的推送上运行。如果你
-  # 使用 `master` 分支作为默认分支，请将其更改为 `master`
   push:
     branches: [main]
-
-  # 允许你从 Actions 选项卡手动运行此工作流程
   workflow_dispatch:
 
 # 设置 GITHUB_TOKEN 的权限，以允许部署到 GitHub Pages
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write # 更改为 write，因为我们将直接推送代码
+  # pages: write # 不再需要，因为我们不使用 actions/deploy-pages
+  # id-token: write # 不再需要，因为我们不使用 actions/deploy-pages
 
 # 只允许同时进行一次部署，跳过正在运行和最新队列之间的运行队列
 # 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成
@@ -24,43 +20,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # 构建工作
-  build:
+  # 构建和部署工作 (合并为一个 job，或者也可以保持为两个)
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 如果未启用 lastUpdated，则不需要
-      # - uses: pnpm/action-setup@v3 # 如果使用 pnpm，请取消此区域注释
-      #   with:
-      #     version: 9
-      # - uses: oven-sh/setup-bun@v1 # 如果使用 Bun，请取消注释
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm # 或 pnpm / yarn
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+
+      # - name: Setup Pages # 不再需要，因为我们不使用 actions/configure-pages
+      #   uses: actions/configure-pages@v4
+
       - name: Install dependencies
         run: npm ci # 或 pnpm install / yarn install / bun install
+
       - name: Build with VitePress
         run: npm run docs:build # 或 pnpm docs:build / yarn docs:build / bun run docs:build
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/.vitepress/dist
 
-  # 部署工作
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    needs: build
-    runs-on: ubuntu-latest
-    name: Deploy
-    steps:
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用内置的 GITHUB_TOKEN
+        run: |
+          # 假设 VitePress 构建到 docs/.vitepress/dist
+          cd docs/.vitepress/dist
+
+          # 确保如果 dist 文件夹已经是一个 Git 仓库，则进行清理
+          # 或者，您可以将构建输出路径更改为不在 Git 跟踪的路径
+          # rm -rf .git # 如果构建目录有时会变成 Git 仓库，可取消注释
+
+          git init
+          git add -A
+          git commit -m "Deploy VitePress site via GitHub Actions"
+          
+          # 推送到 gh-pages 分支，强制覆盖
+          # 注意：请将 gasdyueer/myhexo 替换为您的实际仓库名
+          # 例如：git push origin HEAD:gh-pages -f
+          # 对于同一个仓库，origin 已经是您的仓库
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:gh-pages -f
+
+# 请注意：
+# 1. 您需要在您的仓库设置中手动启用 GitHub Pages，并选择从 `gh-pages` 分支提供服务。
+# 2. `GH_TOKEN` 环境变量被更改为内置的 `secrets.GITHUB_TOKEN`，它在工作流运行时自动提供，并且根据 `permissions` 中的设置具有相应的权限。您不需要在仓库 Secrets 中手动创建 `GH_TOKEN`。
+# 3. `cd docs/.vitepress/dist` 是关键，确保在正确的构建输出目录中执行 Git 命令。
+# 4. `github.repository` 会自动获取当前仓库的拥有者和名称 (例如 `your-username/your-repo-name`)。
