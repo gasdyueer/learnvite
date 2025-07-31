@@ -54,7 +54,7 @@ jobs:
           # --- 核心修复：先添加远程仓库，再进行推送 ---
           # 注意：请将 gasdyueer/learnvite.git 替换为 ${{ github.repository }}.git
           # 这是 Copilot 提供的具体仓库名称，但使用 ${{ github.repository }} 更通用
-          git remote add origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+          git remote add origin https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
           
           # 推送到 gh-pages 分支，强制覆盖
           git push origin HEAD:gh-pages --force
