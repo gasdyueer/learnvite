@@ -1,5 +1,5 @@
 # 构建 VitePress 站点并将其部署到 GitHub Pages 的示例工作流程
-# (修改为使用 git push 部署，并使用您自定义的 secrets.GH_TOKEN，同时优化 git push 命令)
+# (修复 'No such remote origin' 错误，确保正确添加远程仓库)
 name: Deploy VitePress site to Pages (via git push with custom GH_TOKEN)
 
 on:
@@ -7,12 +7,8 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# 设置 GITHUB_TOKEN 的权限
-# 这里只需要读取权限，因为推送将使用您自定义的 GH_TOKEN
 permissions:
-  contents: read # 只需读取权限，因为我们不依赖内置的 GITHUB_TOKEN 来进行推送
-  # 如果您要使用内置的 GITHUB_TOKEN 推送到 gh-pages 分支，则需要设置 contents: write 权限
-  # 例如：permissions: contents: write
+  contents: read # 只需读取权限，因为我们使用自定义的 GH_TOKEN 进行推送
 
 concurrency:
   group: pages
@@ -39,37 +35,33 @@ jobs:
       - name: Build with VitePress
         run: npm run docs:build
 
-      - name: Configure Git
+      - name: Configure Git User
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Deploy to GitHub Pages
         env:
-          # 使用您手动创建的 secret 命名为 GH_TOKEN
           GH_TOKEN: ${{ secrets.GH_TOKEN }} 
         run: |
           # 假设 VitePress 构建到 docs/.vitepress/dist
           cd docs/.vitepress/dist
 
-          git init # 重新初始化仓库，确保清除任何旧的 Git 痕迹
+          git init # 初始化一个新的本地 Git 仓库
           git add -A
           git commit -m "Deploy VitePress site via GitHub Actions"
           
-          # --- 重点修改部分 ---
-          # 设置远程 URL，使用 GH_TOKEN 进行身份验证
-          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+          # --- 核心修复：先添加远程仓库，再进行推送 ---
+          # 注意：请将 gasdyueer/learnvite.git 替换为 ${{ github.repository }}.git
+          # 这是 Copilot 提供的具体仓库名称，但使用 ${{ github.repository }} 更通用
+          git remote add origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
           
           # 推送到 gh-pages 分支，强制覆盖
-          # 确保您的 secrets.GH_TOKEN 具有推送到此仓库的权限 (通常是 repo 作用域)
           git push origin HEAD:gh-pages --force
-          # --- 重点修改部分结束 ---
+          # --- 核心修复结束 ---
 
 # 重要的注意事项：
 # 1. 您必须在 GitHub 仓库的 Settings -> Secrets and variables -> Actions -> Repository secrets 中
 #    创建一个名为 `GH_TOKEN` 的 secret，其值是您的 Personal Access Token (PAT)。
 # 2. 该 PAT 必须具有足够的权限来推送到您的仓库（通常是 `repo` 作用域）。
 # 3. 在您的仓库设置中，请确保 GitHub Pages 的源已设置为 `gh-pages` 分支。
-# 4. 如果您决定改用 GitHub Actions 内置的 GITHUB_TOKEN (更推荐)，则需要将
-#    `permissions` 改为 `contents: write`，并将 `env: GH_TOKEN:` 行删除，
-#    然后 `git remote set-url` 中的 `GH_TOKEN` 改为 `GITHUB_TOKEN`。
