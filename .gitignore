@@ -1,0 +1,14 @@
+# Node modules
+node_modules/
+
+# VitePress specific generated files
+docs/.vitepress/cache/
+docs/.vitepress/dist/ # 忽略构建产物在 main 分支
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDEs (optional - if you use VS Code, etc.)
+.vscode/ # 如果你不希望分享你的 VS Code 配置
+.idea/   # WebStorm/IntelliJ IDEA
