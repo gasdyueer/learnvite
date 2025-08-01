@@ -1,3 +1,7 @@
+---
+outline: deep
+---
+
 # Lua 脚本指南
 
 ## 关于 Lua 脚本
