@@ -29,7 +29,7 @@ export default defineConfig({
         text: '转载文章',
         items: [
           { text: '【转载文章】 如何提高自控力', link: '/how-to-improve-self-control' },
-          { text: '【转载文章】 Lua 脚本指南', link: '/lua-script-guide' }
+          { text: 'Aviutl ExEdit2的Lua 脚本指南', link: '/lua-script-guide' }
         ]
       }
     ],
