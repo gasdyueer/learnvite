@@ -41,4 +41,5 @@ jobs:
           git add -A
           git commit -m "Deploy VitePress site via GitHub Actions"
           git remote add origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+          git push origin HEAD:gh-pages -f
           
