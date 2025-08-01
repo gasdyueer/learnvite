@@ -6,13 +6,14 @@ outline: deep
 
 ## 关于 Lua 脚本
 
-脚本控制、脚本文件（*.anm2, *.obj2, *.cam2, *.scn2, *.tra2）以及文本的脚本控制字符中，可以使用 Lua 语言。此外，还扩展了一些变量和函数。
-※旧脚本文件（*.anm, *.obj, *.cam, *.scn, *.tra）也可以使用，但部分功能不受支持。
+脚本控制、脚本文件（\*.anm2, \*.obj2, \*.cam2, \*.scn2, \*.tra2）以及文本的脚本控制字符中，可以使用 Lua 语言。此外，还扩展了一些变量和函数。
+
+※旧脚本文件（\*.anm, \*.obj, \*.cam, \*.scn, \*.tra）也可以使用，但部分功能不受支持。
 
 ## 注意点
 
 ::: tip 注意
-- 脚本的字符编码为 UTF-8。※旧脚本文件的字符编码为 SJIS。
+- 脚本的字符编码为 UTF-8。\n※旧脚本文件的字符编码为 SJIS。
 - 脚本的存放位置为 `ProgramData\aviutl2\Script\` 文件夹（及其下一级文件夹）。
 - 从一个脚本调用另一个脚本可能无法正常工作。
 - 执行“丢弃缓存”操作会重新加载脚本（包括着色器），但设置项的更改不会被反映。
@@ -25,6 +26,7 @@ outline: deep
 
 ::: details 轨道条项目定义
 通过在脚本文件开头使用 `'--track@变量名:项目名,最小值,最大值,默认值,移动单位'` 的格式，可以启用轨道条。移动单位可以是 '1', '0.1', '0.01', '0.001' 或省略。
+
 ※旧脚本文件格式的 `'--track0:项目名,最小值,最大值,默认值,移动单位'` 也可以使用。
 
 ```lua
@@ -35,6 +37,7 @@ obj.ox = obj.ox + vx * obj.time
 
 ::: details 复选框项目定义
 通过在脚本文件开头使用 `'--check@变量名:项目名,默认值(0或1)'` 的格式，可以启用复选框。
+
 ※旧脚本文件格式的 `'--check0:项目名,默认值(0或1)'` 也可以使用。
 
 ```lua
@@ -46,6 +49,7 @@ if( grav ) then
 ::: details 颜色设置项目定义
 通过在脚本文件开头使用 `'--color@变量名:项目名,默认值'` 的格式，可以启用颜色设置项目。
 将默认值指定为 `nil` 可以选择透明色。
+
 ※旧脚本文件格式的 `'--color:默认值'` 也可以使用。
 
 ```lua
@@ -56,6 +60,7 @@ obj.load("figure","四角形",col,100)
 
 ::: details 文件选择项目定义
 通过在脚本文件开头使用 `'--file@变量名:项目名'` 的格式，可以启用文件选择项目。
+
 ※旧脚本文件格式的 `'--file:'` 也可以使用。
 
 ```lua
@@ -94,6 +99,7 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 ::: details 变量项目定义
 通过在脚本文件开头使用 `'--value@变量名:项目名,默认值'` 的格式，可以启用变量项目。
 变量项目是文本输入项，可以定义数值、字符串和数组。
+
 ※根据默认值的内容切换类型。
 
 ```lua
@@ -130,6 +136,7 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 
 ::: details 像素着色器定义
 在脚本文件开头的 `'--[[pixelshader@注册名:'` 这样的多行注释中，可以用 HLSL 编写像素着色器。
+
 ※注册名将作为入口点。
 
 ```hlsl
@@ -143,6 +150,7 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 
 ::: details 计算着色器定义
 在脚本文件开头的 `'--[[computeshader@注册名:'` 这样的多行注释中，可以用 HLSL 编写计算着色器。
+
 ※注册名将作为入口点。
 
 ```hlsl
@@ -195,6 +203,7 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 
 ::: details obj.mes(text)
 在文本对象中添加指定的文本。只能在文本对象的文本内使用。
+
 ※也可以省略 `obj.` 直接使用 `mes()`。
 - `text`: 要显示的文本。
 `例：obj.mes("这段文字将被插入并显示")`
@@ -207,15 +216,20 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 - `param1`: 特效参数名称。
 - `value1`: 特效参数值。
 `param?`, `value?` 的组合可以根据需要指定任意数量。
+
 ※轨道条、复选框以外的设置的 `param`, `value` 是通过别名文件等输出时的名称和值。
+
 ※旧脚本文件的参数会参照 `effect.conf` 的定义进行转换。不足的定义会适时添加。
+
 `例：obj.effect("色调校正","亮度",150,"色相",180)`
 :::
 
 ::: details obj.draw([ox,oy,oz,zoom,alpha,rx,ry,rz])
 绘制当前对象。
 通常情况下，即使不执行任何操作，对象最后也会被绘制，但使用 `obj.draw()` 可以多次绘制对象。
+
 ※使用 `obj.draw()` 时，脚本之后的滤镜效果将不会执行。
+
 ※可以通过不带参数调用 `obj.effect()` 来预先执行脚本之后的滤镜效果。
 - `ox`: 相对坐标 X
 - `oy`: 相对坐标 Y
@@ -230,9 +244,13 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 
 ::: details obj.drawpoly(x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3[,u0,v0,u1,v1,u2,v2,u3,v3,alpha])
 以任意四边形绘制当前对象的任意部分。
+
 ※内角全部小于180度的平面以外的部分无法正确绘制。
+
 ※顶点0到3按顺时针方向的面为正面。
+
 ※使用 `obj.drawpoly()` 时，脚本之后的滤镜效果将不会执行。
+
 - `x0,y0,z0`: 四边形顶点0的坐标
 - `x1,y1,z1`: 四边形顶点1的坐标
 - `x2,y2,z2`: 四边形顶点2的坐标
@@ -252,8 +270,11 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 - `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,u0,v0,u1,v1,u2,v2,u3,v3,vx0,vy0,vz0,vx1,vy1,vz1,vx2,vy2,vz2,vx3,vy3,vz3}`
 - `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,r0,g0,b0,a0,r1,g1,b1,a1,r2,g2,b2,a2,r3,g3,b3,a3}`
 - `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,r0,g0,b0,a0,r1,g1,b1,a1,r2,g2,b2,a2,r3,g3,b3,a3,vx0,vy0,vz0,vx1,vy1,vz1,vx2,vy2,vz2,vx3,vy3,vz3}`
+
 ※`vx,vy,vz` 是法线向量
+
 ※`r,g,b,a` 是绘制颜色 (0.0～1.0 的预乘 Alpha) ※不使用对象图像
+
 `例：`
 `table.insert(vertex,{x0,y0,0,x1,y1,0,x2,y2,0,x3,y3,0,u0,v0,u1,v1,u2,v2,u3,v3})`
 `table.insert(vertex,{x0,y0,100,x1,y1,100,x2,y2,100,x3,y3,100,u0,v0,u1,v1,u2,v2,u3,v3})`
@@ -263,6 +284,7 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 ::: details obj.load([type],...)
 加载当前对象的图像。
 如果省略 `type`，将自动判断。
+
 ※已加载的图像将被丢弃。
 
 - **视频文件**
@@ -326,6 +348,7 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 
 ::: details obj.setfont(name,size[,type,col1,col2])
 指定 `obj.load()` 的文本所用字体。
+
 ※每次调用脚本都需要指定。
 - `name`: 字体名称
 - `size`: 字体大小
@@ -343,6 +366,7 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 
 ::: details obj.rand(st_num,ed_num[,seed,frame])
 生成随机数。与普通随机数不同，它会在同一时间的帧中始终生成相同的值。
+
 ※也可以省略 `obj.` 直接使用 `rand()`。
 - `st_num`: 随机数最小值
 - `ed_num`: 随机数最大值
@@ -353,6 +377,7 @@ obj.setfont(font,obj.track2,deco,col1,col2)
 
 ::: details obj.setoption(name,value)
 设置当前对象的各种选项。
+
 ※每次调用脚本都需要指定。
 - `name`: 选项名
 - `value`: 选项值
