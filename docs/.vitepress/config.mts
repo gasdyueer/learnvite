@@ -15,6 +15,7 @@ export default defineConfig({
       { text: '首页', link: '/' },
       { text: '示例', link: '/markdown-examples' },
       { text: '转载文章', link: '/how-to-improve-self-control' },
+      { text: 'AviUtl2 指南', link: '/aviutl2-guide' },
     ],
 
     sidebar: [
@@ -31,6 +32,12 @@ export default defineConfig({
           { text: '【转载文章】 如何提高自控力', link: '/how-to-improve-self-control' },
           { text: 'Aviutl ExEdit2的Lua脚本指南', link: '/lua-script-guide' },
           { text: 'Aviutl ExEdit2的Lua脚本指南-beta7版本', link: '/lua-script-guide2' }
+        ]
+      },
+      {
+        text: '技术文档',
+        items: [
+          { text: 'AviUtl2 扩展编辑器完整指南', link: '/aviutl2-guide' }
         ]
       }
     ],
