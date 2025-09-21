@@ -8,7 +8,7 @@ outline: deep
 
 ::: info 版本信息
 - **文档版本**: 3.0
-- **最后更新**: 2025年8月30日
+- **最后更新**: 2025年9月21日
 - **适用版本**: AviUtl 扩展编辑器 2.00 及以上
 - **语言支持**: Lua / LuaJIT
 - **技术支持**: 基于官方文档整理，包含最新功能
@@ -83,6 +83,7 @@ outline: deep
 - 执行"丢弃缓存"操作会重新加载脚本（包括着色器），但设置项更改不会反映
 - 旧脚本文件格式的 `pixel` 输出系列函数不支持（建议改用着色器）
 - **新增**: 像素操作函数相对耗费性能，建议谨慎使用
+- 脚本控制仅支持 `table`、`string`、`math` 库；`os`、`debug`、`ffi.C` 等库已被移除
 :::
 
 ## 脚本文件位置
@@ -279,6 +280,21 @@ elseif animation_type == 1 then
 end
 ```
 
+### 文本设置项目
+
+创建多行文本输入框。
+
+```lua
+--text@变量名:项目名,默认值
+```
+
+**示例：**
+```lua
+--text@content:文本内容,"默认文字\n下一行"
+
+obj.load("text", content)
+```
+
 ### 变量项目
 
 创建文本输入框，支持多种数据类型。
@@ -394,7 +410,7 @@ obj.load("text", message)
 | `obj.time` | 只读 | 当前时间(秒) |
 | `obj.totalframe` | 只读 | 总帧数 |
 | `obj.totaltime` | 只读 | 总时间(秒) |
-| `obj.layer` | 只读 | 所在图层 |
+| `obj.layer` | 只读 | 绘制目标对象的图层位置 |
 | `obj.index` | 只读 | 多对象时的编号 |
 | `obj.num` | 只读 | 多对象时的数量 |
 | `obj.screen_w` | 只读 | 屏幕宽度 |
@@ -490,11 +506,12 @@ obj.drawpoly(-50,-50,0, 50,-50,0, 50,50,0, -50,50,0,
 
 **限制：** 内角必须全部小于180度
 
-#### obj.drawpoly({table}[,alpha])
+#### obj.drawpoly({table}[,vertex_num,alpha])
 
-使用表格形式批量绘制多个四边形。
+使用表格形式批量绘制多个四边形或顶点列表。
 
 ```lua
+-- 批量绘制四边形
 local vertices = {}
 
 -- 添加第一个四边形
@@ -505,13 +522,32 @@ table.insert(vertices, {x0,y0,100,x1,y1,100,x2,y2,100,x3,y3,100,u0,v0,u1,v1,u2,v
 
 -- 批量绘制
 obj.drawpoly(vertices)
+
+-- 顶点列表方式绘制三角形
+vertex={}
+table.insert(vertex,{0,  0,  0, 0,0})
+table.insert(vertex,{100,0,  0, 1,0})
+table.insert(vertex,{100,100,0, 1,1})
+obj.drawpoly(vertex)
+vertex={}
+for z=100,1000,100 do
+    table.insert(vertex,{0,  0,  z, 1,1,1,1})
+    table.insert(vertex,{100,0,  z, 1,1,1,1})
+    table.insert(vertex,{100,100,z, 1,1,1,1})
+end
+obj.drawpoly(vertex,3)  -- 3表示三角形
 ```
 
+**参数：**
+- `vertex_num` (可选): 面顶点数 (4=四边形, 3=三角形)
+- `alpha` (可选): 不透明度
+
 **支持的表格格式：**
-- 基础格式: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,u0,v0,u1,v1,u2,v2,u3,v3}`
+- 四边形格式: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,u0,v0,u1,v1,u2,v2,u3,v3}`
 - 带法线: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,u0,v0,u1,v1,u2,v2,u3,v3,vx0,vy0,vz0,vx1,vy1,vz1,vx2,vy2,vz2,vx3,vy3,vz3}`
 - 颜色模式: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,r0,g0,b0,a0,r1,g1,b1,a1,r2,g2,b2,a2,r3,g3,b3,a3}`
 - 完整格式: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,r0,g0,b0,a0,r1,g1,b1,a1,r2,g2,b2,a2,r3,g3,b3,a3,vx0,vy0,vz0,vx1,vy1,vz1,vx2,vy2,vz2,vx3,vy3,vz3}`
+- 顶点列表格式: `{x,y,z,u,v}` 或 `{x,y,z,u,v,vx,vy,vz}` 或 `{x,y,z,r,g,b,a}` 或 `{x,y,z,r,g,b,a,vx,vy,vz}`
 
 ### 图像加载
 
@@ -712,6 +748,31 @@ local script_name = obj.getoption("script_name")
 - `camera_param`: 相机参数
 - `multi_object`: 多对象启用状态
 
+#### obj.getinfo(name,...)
+
+获取环境信息。
+
+```lua
+-- 获取脚本文件夹路径
+local script_path = obj.getinfo("script_path")
+
+-- 检查是否正在输出视频
+local saving = obj.getinfo("saving")
+
+-- 获取应用启动时间
+local clock = obj.getinfo("clock")
+
+-- 获取脚本处理时间
+local script_time = obj.getinfo("script_time")
+```
+
+**主要选项：**
+- `script_path`: 脚本文件夹路径
+- `saving`: 是否正在输出视频 (true/false)
+- `image_max`: 最大图像尺寸 (width, height)
+- `clock`: 应用启动后的经过时间(秒)
+- `script_time`: 脚本执行开始后的经过时间(毫秒)
+
 #### obj.getvalue(target[, time, section])
 
 获取对象的值。
@@ -726,7 +787,7 @@ local past_value = obj.getvalue("zoom", 5.0)
 ```
 
 **参数：**
-- `target`: 设置类型 (0-3, "x", "y", "z", "rx", "ry", "rz", "zoom", "alpha", "aspect", "time", "layer*")
+- `target`: 设置类型 (0-3, "x", "y", "z", "rx", "ry", "rz", "cx", "cy", "cz", "zoom", "alpha", "aspect", "time", "layer*")
 - `time` (可选): 特定时间点
 - `section` (可选): 区间编号
 
@@ -783,16 +844,30 @@ obj.putpixel(100, 100, 0xff0000, 0.8)
 
 -- 写入RGBA值
 obj.putpixel(100, 100, 255, 0, 0, 128)
+
+-- 写入YCbCr值
+obj.putpixel(100, 100, y, cb, cr, a)
 ```
+
+**参数：**
+- `x,y`: 写入的像素坐标
+- 像素信息类型取决于 `obj.pixeloption("type")` 的设置
+  - `type="col"`: 颜色值(0x000000~0xffffff), 透明度(0.0~1.0)
+  - `type="rgb"`: R,G,B,A 值 (0~255)
+  - `type="yc"`: Y,Cb,Cr,A 值
 
 #### obj.copypixel(dst_x, dst_y, src_x, src_y)
 
-复制像素信息。
+复制对象的像素信息。
 
 ```lua
 -- 复制像素
 obj.copypixel(200, 200, 100, 100)
 ```
+
+**参数：**
+- `dst_x,dst_y`: 复制目标坐标
+- `src_x,src_y`: 复制源坐标
 
 #### obj.pixeloption(name, value)
 
@@ -1350,19 +1425,19 @@ obj.ox = smooth_step(0, 200, t)
 ### 常见问题
 
 **Q: 脚本无法加载？**
-A: 检查脚本文件编码是否为UTF-8，路径是否正确，语法是否有误。
+- A: 检查脚本文件编码是否为UTF-8，路径是否正确，语法是否有误。
 
 **Q: 效果没有显示？**
-A: 确认对象类型是否支持该效果，参数是否正确，脚本执行顺序是否正确。
+- A: 确认对象类型是否支持该效果，参数是否正确，脚本执行顺序是否正确。
 
 **Q: 性能很差？**
-A: 优化绘制调用，减少不必要的计算，考虑使用虚拟缓冲区，避免频繁的像素操作。
+- A: 优化绘制调用，减少不必要的计算，考虑使用虚拟缓冲区，避免频繁的像素操作。
 
 **Q: 随机数不随机？**
-A: 这是正常行为，同一帧的随机数应该相同。使用不同的种子或帧号。
+- A: 这是正常行为，同一帧的随机数应该相同。使用不同的种子或帧号。
 
 **Q: 着色器不工作？**
-A: 检查着色器语法是否正确，入口点函数名是否与注册名一致。
+- A: 检查着色器语法是否正确，入口点函数名是否与注册名一致。
 
 ### 调试技巧
 
@@ -1385,19 +1460,61 @@ end
 
 ### 程序更新历史
 
-- **2025/8/30** - 修复轨道条移动脚本中 `obj.rand()` 默认种子计算的问题，修复文本单独对象显示时机未反映到 `obj` 变量的问题
+- **2025/9/21**
+  - 添加文本设置项目 (`--text@`)
+  - 新增 `obj.getvalue()` 对基准中心坐标的支持
+  - `obj.drawpoly()` 新增顶点列表绘制方法
+  - `obj.getinfo()` 新增环境信息获取功能
+  - 修复 `obj.getvalue("layer.x")` 在指定图层无对象时的处理
+  - 修复场景变换脚本中 `obj.setanchor()` 的使用
 
-- **2025/8/24** - 修复输出日志可能导致崩溃的问题，改进 `obj.getpixel()` 的缓存处理并添加处理说明，新增 `obj.putpixel()` 和 `obj.copypixel()` 函数，扩展 `obj.pixeloption()` 选项，修复 `obj.setoption()` 合成模式的部分处理问题
+- **2025/9/13**
+  - 修复脚本控制和脚本文件对包含库的选择
+  - 修复 `obj.copybuffer()` 更新对象时部分 `obj` 变量未正确更新
+  - 修复 `obj.layer` 值反映绘制目标对象的图层位置
+  - 修复 `obj.drawpoly()` 数组指定时的坐标渲染
+  - 新增 `obj.getinfo("clock")` 和 `obj.getinfo("script_time")` 函数
 
-- **2025/8/10** - 修复 `obj.copybuffer()` 在复制图像文件时不能正确反映的问题，修复更新对象时 `obj` 变量未更新的问题，修复对象图像不存在时 `obj.drawpoly()` 可能导致崩溃的问题
+- **2025/9/7**
+  - 修复 `obj.setanchor()` 对直接表格变量指定时的崩溃
+  - 修复脚本控制中不必要的 Lua 库函数包含
 
-- **2025/8/3** - 添加 `obj.effect()` 参数值为数值类型时的处理措施
+- **2025/8/30**
+  - 修复轨道条移动脚本中 `obj.rand()` 默认种子计算的问题
+  - 修复文本单独对象显示时机未反映到 `obj` 变量的问题
 
-- **2025/7/27** - 修复虚拟缓冲区和缓存缓冲区不能正确生成的问题
+- **2025/8/24**
+  - 修复输出日志可能导致崩溃的问题
+  - 改进 `obj.getpixel()` 的缓存处理并添加处理说明
+  - 新增 `obj.putpixel()` 和 `obj.copypixel()` 函数
+  - 扩展 `obj.pixeloption()` 选项
+  - 修复 `obj.setoption()` 合成模式的部分处理问题
 
-- **2025/7/12** - 新增 `copybuffer()` 函数的复制目标类型
+- **2025/8/10**
+  - 修复 `obj.copybuffer()` 在复制图像文件时不能正确反映的问题
+  - 修复更新对象时 `obj` 变量未更新的问题
+  - 修复对象图像不存在时 `obj.drawpoly()` 可能导致崩溃的问题
+
+- **2025/8/3**
+  - 添加 `obj.effect()` 参数值为数值类型时的处理措施
+
+- **2025/7/27**
+  - 修复虚拟缓冲区和缓存缓冲区不能正确生成的问题
+
+- **2025/7/12**
+  - 新增 `copybuffer()` 函数的复制目标类型
 
 ### 文档更新历史
+
+- **2025/9/21** v3.0.1 - 更新至最新官方文档
+  - 添加文本设置项目 (`--text@`)
+  - 新增 `obj.getvalue()` 对基准中心坐标的支持
+  - 扩展 `obj.drawpoly()` 的顶点列表绘制方法
+  - 添加 `obj.getinfo()` 的环境信息获取功能
+  - 更新内置变量 `obj.layer` 的说明
+  - 完善像素操作函数说明
+  - 更新重要注意事项，添加库限制说明
+  - 完整更新程序更新历史至最新版本
 
 - **2025/8/24** v3.0 - 完整重构，基于最新官方文档
   - 合并 lua.txt 和 lua-script-guide2.md 的所有内容
