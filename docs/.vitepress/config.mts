@@ -16,6 +16,7 @@ export default defineConfig({
       { text: '示例', link: '/markdown-examples' },
       { text: '自控力', link: '/how-to-improve-self-control' },
       { text: 'AviUtl2 指南', link: '/aviutl2-guide' },
+      { text: '工程控制论', link: '/engineering-cybernetics' },
     ],
 
     sidebar: [
@@ -41,7 +42,14 @@ export default defineConfig({
           { text: 'Aviutl ExEdit2的Lua脚本指南 v2.0', link: '/lua-script-guide2' },
           { text: 'Aviutl ExEdit2的Lua脚本指南 v3.0 - 完整版', link: '/lua-script3' },
         ]
-      }
+      },
+
+      {
+        text: '科普文章',
+        items: [
+          { text: '工程控制论：一门关于"关系"的科学', link: '/engineering-cybernetics' },
+        ]
+      },
     ],
 
     socialLinks: [
