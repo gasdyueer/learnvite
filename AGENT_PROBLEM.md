@@ -158,6 +158,34 @@ sidebar: [
 **教训**：编辑完成后应通读最终文件，清理格式残留。
 
 ---
+### 问题 8：GitHub Pages 部署认证失败
+
+**现象**：GitHub Actions 中 `deploy.yml` workflow 构建成功，但 `git push` 到 `gh-pages` 分支时报错：
+```
+remote: Invalid username or token.
+Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/gasdyueer/learnvite.git/'
+Error: Process completed with exit code 128.
+```
+
+**原因**：旧 workflow 使用自定义 `secrets.GH_TOKEN` 通过 HTTPS URL 嵌入 token 的方式做 `git push` 认证：
+```yaml
+git remote add origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+git push origin HEAD:gh-pages -f
+```
+GitHub 拒绝了该认证，可能原因：(1) `GH_TOKEN` secret 未在仓库中配置；(2) token 无效或过期；(3) token 缺少 `repo` scope / `Contents: write` 权限。
+
+**解决**：放弃手动 git push，换用 VitePress 官方推荐的 `actions/deploy-pages` 方案：
+- 用 `actions/upload-pages-artifact@v3` 上传构建产物
+- 用 `actions/deploy-pages@v4` 部署到 Pages
+- 全部使用内置 `GITHUB_TOKEN`，无需配置任何自定义 secret
+- 在仓库 Settings → Pages → Source 中选择 GitHub Actions
+
+**教训**：GitHub Pages 部署应优先使用官方 action（`actions/deploy-pages`），避免手写 git push 认证逻辑。自定义 token 方案在 secret 缺失或权限不足时会静默失败，排查成本高。
+
+---
+
+**附加**：`deploy.yml` 中还需声明 `permissions: contents: read, pages: write, id-token: write`，否则 `GITHUB_TOKEN` 默认权限不足以完成 Pages 部署。
 
 ## 改进建议
 
