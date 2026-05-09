@@ -38,9 +38,7 @@ export default defineConfig({
         text: 'AviUtl2 指南',
         items: [
           { text: 'AviUtl2 扩展编辑器完整指南', link: '/aviutl2-guide' },
-          { text: 'Aviutl ExEdit2的Lua脚本指南', link: '/lua-script-guide' },
-          { text: 'Aviutl ExEdit2的Lua脚本指南 v2.0', link: '/lua-script-guide2' },
-          { text: 'Aviutl ExEdit2的Lua脚本指南 v3.0 - 完整版', link: '/lua-script3' },
+          { text: 'AviUtl ExEdit2的Lua脚本指南 - 完整版', link: '/script-guide' },
         ]
       },
 

@@ -1,16 +1,17 @@
 ---
-title: Lua 脚本指南 v2.0 - 完整参考手册
+title: Lua 脚本指南 v3.0 - 完整参考手册
 description: AviUtl 扩展编辑器 Lua 脚本的完整参考指南，包含所有函数、变量和使用示例
 outline: deep
 ---
 
-# Lua 脚本指南 v2.0
+# Lua 脚本指南 v3.0
 
 ::: info 版本信息
-- **文档版本**: 2.0
-- **最后更新**: 2024年8月22日
-- **适用版本**: AviUtl 扩展编辑器
+- **文档版本**: 3.0
+- **最后更新**: 2025年9月21日
+- **适用版本**: AviUtl 扩展编辑器 2.00 及以上
 - **语言支持**: Lua / LuaJIT
+- **技术支持**: 基于官方文档整理，包含最新功能
 :::
 
 ## 📋 目录
@@ -39,7 +40,13 @@ outline: deep
   - [选项设置](#选项设置)
   - [信息获取](#信息获取)
   - [像素操作](#像素操作)
+  - [音频处理](#音频处理)
+  - [缓冲区操作](#缓冲区操作)
+  - [着色器操作](#着色器操作)
+  - [轨道条操作](#轨道条操作)
   - [锚点操作](#锚点操作)
+  - [数学工具](#数学工具)
+  - [调试工具](#调试工具)
 - [使用示例](#使用示例)
 - [高级技巧](#高级技巧)
 - [故障排除](#故障排除)
@@ -55,6 +62,7 @@ outline: deep
 - 🔄 **兼容性**: 支持旧脚本文件格式（`*.anm`, `*.obj`, `*.cam`, `*.scn`, `*.tra`）
 - ⚠️ **部分限制**: 旧脚本文件中的某些功能可能不被支持
 - 🚀 **高性能**: 支持 LuaJIT，性能大幅提升
+- 🆕 **最新功能**: 支持像素操作、着色器、音频处理等高级功能
 
 ### 脚本类型
 
@@ -74,6 +82,8 @@ outline: deep
 - 脚本调用脚本可能无法正常工作
 - 执行"丢弃缓存"操作会重新加载脚本（包括着色器），但设置项更改不会反映
 - 旧脚本文件格式的 `pixel` 输出系列函数不支持（建议改用着色器）
+- **新增**: 像素操作函数相对耗费性能，建议谨慎使用
+- 脚本控制仅支持 `table`、`string`、`math` 库；`os`、`debug`、`ffi.C` 等库已被移除
 :::
 
 ## 脚本文件位置
@@ -140,12 +150,6 @@ obj.zoom = scale
 - **数值范围**: 根据实际需求设置合理的范围
 - **步长设置**: 小数点数值适合精细调节
 - **实时预览**: 拖动时可实时看到效果变化
-:::
-
-::: warning 注意事项
-- 轨道条变量名不能与内置变量重名
-- 数值范围不宜设置过大，避免调节不便
-- 移动单位过小可能影响性能
 :::
 
 ### 复选框项目
@@ -276,6 +280,21 @@ elseif animation_type == 1 then
 end
 ```
 
+### 文本设置项目
+
+创建多行文本输入框。
+
+```lua
+--text@变量名:项目名,默认值
+```
+
+**示例：**
+```lua
+--text@content:文本内容,"默认文字\n下一行"
+
+obj.load("text", content)
+```
+
 ### 变量项目
 
 创建文本输入框，支持多种数据类型。
@@ -321,6 +340,18 @@ obj.load("text", message)
 **示例：**
 ```lua
 --information:粒子系统效果 v3.0 by User
+```
+
+#### 脚本类型指定
+
+```lua
+--script:脚本类型
+```
+
+**示例：**
+```lua
+--script:luaJIT  -- 默认值
+--script:lua     -- 标准Lua
 ```
 
 #### 像素着色器
@@ -379,7 +410,7 @@ obj.load("text", message)
 | `obj.time` | 只读 | 当前时间(秒) |
 | `obj.totalframe` | 只读 | 总帧数 |
 | `obj.totaltime` | 只读 | 总时间(秒) |
-| `obj.layer` | 只读 | 所在图层 |
+| `obj.layer` | 只读 | 绘制目标对象的图层位置 |
 | `obj.index` | 只读 | 多对象时的编号 |
 | `obj.num` | 只读 | 多对象时的数量 |
 | `obj.screen_w` | 只读 | 屏幕宽度 |
@@ -475,11 +506,12 @@ obj.drawpoly(-50,-50,0, 50,-50,0, 50,50,0, -50,50,0,
 
 **限制：** 内角必须全部小于180度
 
-#### obj.drawpoly({table}[,alpha])
+#### obj.drawpoly({table}[,vertex_num,alpha])
 
-使用表格形式批量绘制多个四边形。
+使用表格形式批量绘制多个四边形或顶点列表。
 
 ```lua
+-- 批量绘制四边形
 local vertices = {}
 
 -- 添加第一个四边形
@@ -490,13 +522,32 @@ table.insert(vertices, {x0,y0,100,x1,y1,100,x2,y2,100,x3,y3,100,u0,v0,u1,v1,u2,v
 
 -- 批量绘制
 obj.drawpoly(vertices)
+
+-- 顶点列表方式绘制三角形
+vertex={}
+table.insert(vertex,{0,  0,  0, 0,0})
+table.insert(vertex,{100,0,  0, 1,0})
+table.insert(vertex,{100,100,0, 1,1})
+obj.drawpoly(vertex)
+vertex={}
+for z=100,1000,100 do
+    table.insert(vertex,{0,  0,  z, 1,1,1,1})
+    table.insert(vertex,{100,0,  z, 1,1,1,1})
+    table.insert(vertex,{100,100,z, 1,1,1,1})
+end
+obj.drawpoly(vertex,3)  -- 3表示三角形
 ```
 
+**参数：**
+- `vertex_num` (可选): 面顶点数 (4=四边形, 3=三角形)
+- `alpha` (可选): 不透明度
+
 **支持的表格格式：**
-- 基础格式: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,u0,v0,u1,v1,u2,v2,u3,v3}`
+- 四边形格式: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,u0,v0,u1,v1,u2,v2,u3,v3}`
 - 带法线: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,u0,v0,u1,v1,u2,v2,u3,v3,vx0,vy0,vz0,vx1,vy1,vz1,vx2,vy2,vz2,vx3,vy3,vz3}`
 - 颜色模式: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,r0,g0,b0,a0,r1,g1,b1,a1,r2,g2,b2,a2,r3,g3,b3,a3}`
 - 完整格式: `{x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,r0,g0,b0,a0,r1,g1,b1,a1,r2,g2,b2,a2,r3,g3,b3,a3,vx0,vy0,vz0,vx1,vy1,vz1,vx2,vy2,vz2,vx3,vy3,vz3}`
+- 顶点列表格式: `{x,y,z,u,v}` 或 `{x,y,z,u,v,vx,vy,vz}` 或 `{x,y,z,r,g,b,a}` 或 `{x,y,z,r,g,b,a,vx,vy,vz}`
 
 ### 图像加载
 
@@ -697,6 +748,31 @@ local script_name = obj.getoption("script_name")
 - `camera_param`: 相机参数
 - `multi_object`: 多对象启用状态
 
+#### obj.getinfo(name,...)
+
+获取环境信息。
+
+```lua
+-- 获取脚本文件夹路径
+local script_path = obj.getinfo("script_path")
+
+-- 检查是否正在输出视频
+local saving = obj.getinfo("saving")
+
+-- 获取应用启动时间
+local clock = obj.getinfo("clock")
+
+-- 获取脚本处理时间
+local script_time = obj.getinfo("script_time")
+```
+
+**主要选项：**
+- `script_path`: 脚本文件夹路径
+- `saving`: 是否正在输出视频 (true/false)
+- `image_max`: 最大图像尺寸 (width, height)
+- `clock`: 应用启动后的经过时间(秒)
+- `script_time`: 脚本执行开始后的经过时间(毫秒)
+
 #### obj.getvalue(target[, time, section])
 
 获取对象的值。
@@ -711,7 +787,7 @@ local past_value = obj.getvalue("zoom", 5.0)
 ```
 
 **参数：**
-- `target`: 设置类型 (0-3, "x", "y", "z", "rx", "ry", "rz", "zoom", "alpha", "aspect", "time", "layer*")
+- `target`: 设置类型 (0-3, "x", "y", "z", "rx", "ry", "rz", "cx", "cy", "cz", "zoom", "alpha", "aspect", "time", "layer*")
 - `time` (可选): 特定时间点
 - `section` (可选): 区间编号
 
@@ -758,11 +834,40 @@ local width, height = obj.getpixel()
 - 避免在循环中频繁调用
 :::
 
-::: info 坐标系统说明
-- 坐标原点(0,0)位于对象左上角
-- X轴向右为正，Y轴向下为正
-- 超出图像范围的坐标返回透明像素
-:::
+#### obj.putpixel(x,y,...)
+
+写入对象的像素信息。
+
+```lua
+-- 写入颜色和透明度
+obj.putpixel(100, 100, 0xff0000, 0.8)
+
+-- 写入RGBA值
+obj.putpixel(100, 100, 255, 0, 0, 128)
+
+-- 写入YCbCr值
+obj.putpixel(100, 100, y, cb, cr, a)
+```
+
+**参数：**
+- `x,y`: 写入的像素坐标
+- 像素信息类型取决于 `obj.pixeloption("type")` 的设置
+  - `type="col"`: 颜色值(0x000000~0xffffff), 透明度(0.0~1.0)
+  - `type="rgb"`: R,G,B,A 值 (0~255)
+  - `type="yc"`: Y,Cb,Cr,A 值
+
+#### obj.copypixel(dst_x, dst_y, src_x, src_y)
+
+复制对象的像素信息。
+
+```lua
+-- 复制像素
+obj.copypixel(200, 200, 100, 100)
+```
+
+**参数：**
+- `dst_x,dst_y`: 复制目标坐标
+- `src_x,src_y`: 复制源坐标
 
 #### obj.pixeloption(name, value)
 
@@ -771,11 +876,180 @@ local width, height = obj.getpixel()
 ```lua
 -- 设置像素信息类型
 obj.pixeloption("type", "rgb")
+
+-- 设置读取源
+obj.pixeloption("get", "framebuffer")
+
+-- 设置写入目标
+obj.pixeloption("put", "object")
+
+-- 设置混合类型
+obj.pixeloption("blend", 0)
 ```
 
 **参数：**
 - `name`: 选项名
 - `value`: 选项值
+
+**主要选项：**
+- `type`: 像素信息类型 ("col"/"rgb"/"yc")
+- `get`: 读取源 ("object"/"framebuffer")
+- `put`: 写入目标 ("object"/"framebuffer")
+- `blend`: 混合类型 (0=替换, 1=加算, 2=减算, 3=乘算)
+
+### 音频处理
+
+#### obj.getaudio(buf, file, type, size)
+
+从音声文件获取音频数据。
+
+```lua
+-- 获取PCM数据
+local n, rate = obj.getaudio(buf, "audio.wav", "pcm", 1000)
+
+-- 获取频谱数据
+local n, rate = obj.getaudio(buf, "audiobuffer", "spectrum", 32)
+
+-- 获取傅里叶变换数据
+local n, rate, buf = obj.getaudio(nil, "audio.wav", "fourier", 0)
+```
+
+**参数：**
+- `buf`: 数据接收表格 (nil时通过返回值获取)
+- `file`: 音声文件路径 ("audiobuffer"表示编辑中的音声数据)
+- `type`: 数据类型
+  - `"pcm"`: PCM采样数据
+  - `"spectrum"`: 频率频谱数据
+  - `"fourier"`: 傅里叶变换数据
+- `size`: 获取数据数量
+
+**返回值：**
+- `获取数量, 采样率[, 数据表格]`
+
+### 缓冲区操作
+
+#### obj.copybuffer(dst, src)
+
+复制图像缓冲区。
+
+```lua
+-- 对象 -> 虚拟缓冲区
+obj.copybuffer("tempbuffer", "object")
+
+-- 虚拟缓冲区 -> 对象
+obj.copybuffer("object", "tempbuffer")
+
+-- 帧缓冲区 -> 缓存缓冲区
+obj.copybuffer("cache:buffer1", "framebuffer")
+
+-- 图像文件 -> 对象
+obj.copybuffer("object", "image:photo.png")
+```
+
+**参数：**
+- `dst`: 目标缓冲区
+- `src`: 源缓冲区
+
+**缓冲区类型：**
+- `"tempbuffer"`: 虚拟缓冲区
+- `"object"`: 当前对象
+- `"framebuffer"`: 帧缓冲区
+- `"cache:name"`: 缓存缓冲区
+- `"image:path"`: 图像文件
+
+#### obj.clearbuffer(target[, color])
+
+清除图像缓冲区。
+
+```lua
+-- 清除虚拟缓冲区为透明
+obj.clearbuffer("tempbuffer")
+
+-- 清除对象为白色
+obj.clearbuffer("object", 0xffffff)
+```
+
+**参数：**
+- `target`: 目标缓冲区
+- `color` (可选): 清除颜色，省略时为透明
+
+### 着色器操作
+
+#### obj.pixelshader(name, target, resource, constant, blend)
+
+执行像素着色器。
+
+```lua
+-- 简单着色器调用
+obj.pixelshader("psmain", "object", nil, {bright/100}, "add")
+
+-- 带纹理的着色器
+obj.pixelshader("psmain", "object", "tempbuffer", {time, 0.5}, "copy")
+```
+
+**参数：**
+- `name`: 着色器名称
+- `target`: 输出目标缓冲区
+- `resource`: 引用缓冲区 (数组或单个缓冲区名)
+- `constant`: 常量数组 (传递给着色器的参数)
+- `blend`: 混合方式
+
+**混合方式：**
+- `"copy"`: 直接复制
+- `"mask"`: 仅使用透明度
+- `"draw"`: 透明度混合
+- `"add"`: 加算合成
+
+#### obj.computeshader(name, target, resource, constant, countX, countY, countZ)
+
+执行计算着色器。
+
+```lua
+-- 计算着色器调用
+obj.computeshader("csmain", {"object"}, {"tempbuffer"}, {time}, 32, 32, 1)
+```
+
+### 轨道条操作
+
+#### obj.getpoint(target[, option])
+
+获取轨道条的值。
+
+```lua
+-- 获取指定区间的轨道条值
+local value = obj.getpoint(0)
+
+-- 获取当前区间的索引
+local index = obj.getpoint("index")
+
+-- 获取区间的总数
+local num = obj.getpoint("num")
+
+-- 获取当前时间
+local time = obj.getpoint("time")
+
+-- 检查是否设置了加速
+local accelerate = obj.getpoint("accelerate")
+
+-- 检查是否设置了减速
+local decelerate = obj.getpoint("decelerate")
+
+-- 获取轨道条参数
+local param = obj.getpoint("param")
+
+-- 获取相关轨道的索引和总数
+local index, num = obj.getpoint("link")
+
+-- 获取时间控制的值
+local time_value = obj.getpoint("timecontrol", "time")
+
+-- 获取帧率
+local framerate = obj.getpoint("framerate")
+```
+
+**参数：**
+- `target`: 获取目标
+- `option` (可选): 附加选项
 
 ### 锚点操作
 
@@ -805,25 +1079,98 @@ local count = obj.setanchor("track", 0, "line", "color", 0xff0000)
 - `"inout"`: IN/OUT两侧显示
 - `"xyz"`: 3D坐标控制
 
-::: tip 锚点操作高级用法
-- **路径动画**: 使用多个锚点创建复杂路径
-- **形变控制**: 实时调整对象形状
-- **交互设计**: 创建可编辑的动画路径
-- **视觉引导**: 在预览中显示控制点
-:::
+### 数学工具
 
-::: info 锚点系统特性
-- **实时交互**: 可在预览窗口直接拖拽锚点
-- **多组锚点**: 支持同时显示多个锚点组
-- **参数绑定**: 锚点位置自动同步到脚本变量
-- **可视化编辑**: 支持线条连接和颜色区分
-:::
+#### obj.interpolation(time, x0,y0,z0, x1,y1,z1, x2,y2,z2, x3,y3,z3)
 
-::: warning 使用限制
-- 锚点操作相对复杂，建议有一定经验后使用
-- 大量锚点可能影响编辑器性能
-- 3D模式在某些配置下可能有显示问题
-:::
+计算连续点之间的插值。
+
+```lua
+-- 2D插值
+local x, y = obj.interpolation(t, x0,y0, x1,y1, x2,y2, x3,y3)
+
+-- 3D插值
+local x, y, z = obj.interpolation(t, x0,y0,z0, x1,y1,z1, x2,y2,z2, x3,y3,z3)
+```
+
+**参数：**
+- `time`: 时间参数 (0.0~1.0)
+- `x0,y0,z0` ~ `x3,y3,z3`: 四个控制点的坐标
+
+#### RGB(r,g,b) / RGB(color)
+
+颜色值与RGB分量的相互转换。
+
+```lua
+-- RGB转颜色值
+local color = RGB(255, 0, 0)
+
+-- 颜色值转RGB
+local r, g, b = RGB(0xff0000)
+
+-- 时间变化的颜色
+local color = RGB(255,0,0, 0,255,0)
+```
+
+#### HSV(h,s,v) / HSV(color)
+
+颜色值与HSV分量的相互转换。
+
+```lua
+-- HSV转颜色值
+local color = HSV(0, 100, 100)
+
+-- 颜色值转HSV
+local h, s, v = HSV(0xff0000)
+
+-- 时间变化的颜色
+local color = HSV(0,100,100, 120,100,100)
+```
+
+#### OR(a,b) / AND(a,b) / XOR(a,b)
+
+位运算函数。
+
+```lua
+local result_or = OR(a, b)
+local result_and = AND(a, b)
+local result_xor = XOR(a, b)
+```
+
+#### SHIFT(a, shift)
+
+移位运算。
+
+```lua
+-- 左移位
+local result = SHIFT(value, 2)
+
+-- 右移位
+local result = SHIFT(value, -1)
+```
+
+#### rotation(x0,y0,x1,y1,x2,y2,x3,y3,zoom,r)
+
+坐标旋转变换。
+
+```lua
+-- 旋转四个顶点坐标
+local x0,y0,x1,y1,x2,y2,x3,y3 = rotation(x0,y0,x1,y1,x2,y2,x3,y3,1.0,45)
+```
+
+### 调试工具
+
+#### debug_print(text)
+
+输出调试信息到日志。
+
+```lua
+debug_print("当前时间: " .. obj.time)
+debug_print(string.format("位置: (%.2f, %.2f)", obj.ox, obj.oy))
+```
+
+**参数：**
+- `text`: 调试信息文本
 
 ## 使用示例
 
@@ -903,25 +1250,47 @@ obj.drawpoly(vertices)
 
 ### 高级示例
 
-#### 波浪文字效果
+#### 像素着色器使用
 
 ```lua
---font@main_font:字体,微软雅黑
---value@text:文本内容,"Hello World"
---track@wave_speed:波浪速度,0,5,1
---track@wave_height:波浪高度,0,50,20
+--track@bright:亮度,-100,100,0,0.01
 
-obj.setfont(main_font, 48, 0, 0x000000, 0xffffff)
+--[[pixelshader@psmain:
+cbuffer constant0 : register(b0) {
+    float bright;
+};
+float4 psmain(float4 pos : SV_Position) : SV_Target {
+    return float4(bright, bright, bright, 1);
+}
+]]
 
-for i = 1, #text do
-    local char = string.sub(text, i, i)
-    local x = (i - 1) * 40
-    local wave = math.sin((obj.time * wave_speed + i * 0.5)) * wave_height
-    local y = wave
+obj.pixelshader("psmain", "object", nil, {bright/100}, "add")
+```
 
-    obj.load("text", char)
+#### 音频可视化
+
+```lua
+--value@bar_count:柱状图数量,32
+--track@sensitivity:灵敏度,0.1,5,1
+
+local buf = {}
+local n = obj.getaudio(buf, "audiobuffer", "spectrum", bar_count)
+
+obj.setoption("drawtarget", "tempbuffer", obj.w, obj.h)
+obj.clearbuffer("tempbuffer", 0x000000)
+
+for i = 1, n do
+    local height = buf[i] * sensitivity * obj.h
+    local x = (i - 1) * (obj.w / bar_count)
+    local y = obj.h - height
+
+    -- 绘制频谱条
+    obj.load("figure", "四角形", 0x00ff00, obj.w / bar_count, 0, false)
     obj.draw(x, y)
 end
+
+obj.load("tempbuffer")
+obj.setoption("drawtarget", "framebuffer")
 ```
 
 #### 3D 旋转效果
@@ -944,6 +1313,58 @@ obj.rz = rotate_z
 obj.oz = distance
 ```
 
+#### 波浪文字效果
+
+```lua
+--font@main_font:字体,微软雅黑
+--value@text:文本内容,"Hello World"
+--track@wave_speed:波浪速度,0,5,1
+--track@wave_height:波浪高度,0,50,20
+
+obj.setfont(main_font, 48, 0, 0x000000, 0xffffff)
+
+for i = 1, #text do
+    local char = string.sub(text, i, i)
+    local x = (i - 1) * 40
+    local wave = math.sin((obj.time * wave_speed + i * 0.5)) * wave_height
+    local y = wave
+
+    obj.load("text", char)
+    obj.draw(x, y)
+end
+```
+
+#### 多对象脚本
+
+```lua
+--@particle_system
+--track@count:粒子数,10,100,50
+--color@color:粒子颜色,0xffffff
+
+if obj.index == 0 then
+    -- 主对象：管理粒子
+    obj.setoption("drawtarget", "tempbuffer", 1920, 1080)
+    obj.clearbuffer("tempbuffer")
+else
+    -- 粒子对象：绘制单个粒子
+    local angle = (obj.index / obj.num) * 2 * math.pi + obj.time * 2
+    local radius = 100 + math.sin(obj.time + obj.index) * 50
+    obj.ox = math.cos(angle) * radius
+    obj.oy = math.sin(angle) * radius
+    obj.load("figure", "圆", color, 10)
+    obj.draw()
+end
+
+if obj.index == obj.num - 1 then
+    -- 最后对象：显示结果
+    obj.load("tempbuffer")
+    obj.setoption("drawtarget", "framebuffer")
+end
+
+--@main
+-- 其他脚本内容
+```
+
 ## 高级技巧
 
 ### 性能优化
@@ -952,6 +1373,7 @@ obj.oz = distance
 2. **避免不必要的计算**: 在循环外计算常量值
 3. **使用虚拟缓冲区**: 复杂效果先渲染到虚拟缓冲区再输出
 4. **合理使用随机数**: 避免在每帧都重新生成随机数
+5. **像素操作优化**: 减少 `getpixel`/`putpixel` 的调用频率
 
 ### 内存管理
 
@@ -992,6 +1414,10 @@ end
 local function ease_out_cubic(t)
     return 1 - math.pow(1 - t, 3)
 end
+
+-- 使用示例
+local t = obj.time / 2
+obj.ox = smooth_step(0, 200, t)
 ```
 
 ## 故障排除
@@ -999,16 +1425,19 @@ end
 ### 常见问题
 
 **Q: 脚本无法加载？**
-A: 检查脚本文件编码是否为UTF-8，路径是否正确。
+- A: 检查脚本文件编码是否为UTF-8，路径是否正确，语法是否有误。
 
 **Q: 效果没有显示？**
-A: 确认对象类型是否支持该效果，参数是否正确。
+- A: 确认对象类型是否支持该效果，参数是否正确，脚本执行顺序是否正确。
 
 **Q: 性能很差？**
-A: 优化绘制调用，减少不必要的计算，考虑使用虚拟缓冲区。
+- A: 优化绘制调用，减少不必要的计算，考虑使用虚拟缓冲区，避免频繁的像素操作。
 
 **Q: 随机数不随机？**
-A: 这是正常行为，同一帧的随机数应该相同。使用不同的种子或帧号。
+- A: 这是正常行为，同一帧的随机数应该相同。使用不同的种子或帧号。
+
+**Q: 着色器不工作？**
+- A: 检查着色器语法是否正确，入口点函数名是否与注册名一致。
 
 ### 调试技巧
 
@@ -1020,11 +1449,80 @@ obj.load("text", string.format("time: %.2f", obj.time))
 if obj.frame == 60 then
     -- 在第60帧时的调试代码
 end
+
+-- 范围检查
+if obj.ox < -1000 or obj.ox > 1000 then
+    debug_print("对象位置异常: " .. obj.ox)
+end
 ```
 
 ## 更新历史
 
-- **2024/08/22** v2.0 - 完整重构文档
+### 程序更新历史
+
+- **2025/9/21**
+  - 添加文本设置项目 (`--text@`)
+  - 新增 `obj.getvalue()` 对基准中心坐标的支持
+  - `obj.drawpoly()` 新增顶点列表绘制方法
+  - `obj.getinfo()` 新增环境信息获取功能
+  - 修复 `obj.getvalue("layer.x")` 在指定图层无对象时的处理
+  - 修复场景变换脚本中 `obj.setanchor()` 的使用
+
+- **2025/9/13**
+  - 修复脚本控制和脚本文件对包含库的选择
+  - 修复 `obj.copybuffer()` 更新对象时部分 `obj` 变量未正确更新
+  - 修复 `obj.layer` 值反映绘制目标对象的图层位置
+  - 修复 `obj.drawpoly()` 数组指定时的坐标渲染
+  - 新增 `obj.getinfo("clock")` 和 `obj.getinfo("script_time")` 函数
+
+- **2025/9/7**
+  - 修复 `obj.setanchor()` 对直接表格变量指定时的崩溃
+  - 修复脚本控制中不必要的 Lua 库函数包含
+
+- **2025/8/30**
+  - 修复轨道条移动脚本中 `obj.rand()` 默认种子计算的问题
+  - 修复文本单独对象显示时机未反映到 `obj` 变量的问题
+
+- **2025/8/24**
+  - 修复输出日志可能导致崩溃的问题
+  - 改进 `obj.getpixel()` 的缓存处理并添加处理说明
+  - 新增 `obj.putpixel()` 和 `obj.copypixel()` 函数
+  - 扩展 `obj.pixeloption()` 选项
+  - 修复 `obj.setoption()` 合成模式的部分处理问题
+
+- **2025/8/10**
+  - 修复 `obj.copybuffer()` 在复制图像文件时不能正确反映的问题
+  - 修复更新对象时 `obj` 变量未更新的问题
+  - 修复对象图像不存在时 `obj.drawpoly()` 可能导致崩溃的问题
+
+- **2025/8/3**
+  - 添加 `obj.effect()` 参数值为数值类型时的处理措施
+
+- **2025/7/27**
+  - 修复虚拟缓冲区和缓存缓冲区不能正确生成的问题
+
+- **2025/7/12**
+  - 新增 `copybuffer()` 函数的复制目标类型
+
+### 文档更新历史
+
+- **2025/9/21** v3.0.1 - 更新至最新官方文档
+  - 添加文本设置项目 (`--text@`)
+  - 新增 `obj.getvalue()` 对基准中心坐标的支持
+  - 扩展 `obj.drawpoly()` 的顶点列表绘制方法
+  - 添加 `obj.getinfo()` 的环境信息获取功能
+  - 更新内置变量 `obj.layer` 的说明
+  - 完善像素操作函数说明
+  - 更新重要注意事项，添加库限制说明
+  - 完整更新程序更新历史至最新版本
+
+- **2025/8/24** v3.0 - 完整重构，基于最新官方文档
+  - 合并 lua.txt 和 lua-script-guide2.md 的所有内容（已合并至本文档）
+  - 新增像素操作、音频处理、着色器操作等最新功能
+  - 扩展使用示例和高级技巧
+  - 完善错误处理和性能优化建议
+
+- **2024/08/22** v2.0 - 文档重构
   - 补充完整的像素操作函数
   - 添加锚点操作说明
   - 完善所有使用示例

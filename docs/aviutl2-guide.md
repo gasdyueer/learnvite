@@ -656,7 +656,7 @@ AviUtl2 采用模块化窗口设计，所有功能都通过可拖拽的独立窗
 ## 🔗 相关资源
 
 - **官方网站**: [AviUtl2 官方站点](https://spring-fragrance.mints.ne.jp/aviutl/)
-- **Lua 脚本指南**: [AviUtl2 Lua 脚本指南 v2.0](./lua-script-guide2)
+- **Lua 脚本指南**: [AviUtl2 Lua 脚本指南](./script-guide)
 - **社区论坛**: 相关技术讨论和资源分享
 - **插件仓库**: 丰富的插件和脚本资源
 

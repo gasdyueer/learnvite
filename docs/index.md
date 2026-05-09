@@ -11,8 +11,8 @@ hero:
       text: 如何提高自控力
       link: /how-to-improve-self-control
     - theme: brand
-      text: AviUtl Lua脚本指南 v3.0 - 完整参考手册
-      link: /lua-script3
+      text: Lua 脚本指南 - 完整参考手册
+      link: /script-guide
     - theme: alt
       text: AviUtl2 扩展编辑器指南
       link: /aviutl2-guide
