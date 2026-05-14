@@ -17,6 +17,7 @@ export default defineConfig({
       { text: '自控力', link: '/how-to-improve-self-control' },
       { text: 'AviUtl2 指南', link: '/aviutl2-guide' },
       { text: '工程控制论', link: '/engineering-cybernetics' },
+      { text: '视频文案', link: '/video-script-guide' },
     ],
 
     sidebar: [
@@ -46,6 +47,13 @@ export default defineConfig({
         text: '科普文章',
         items: [
           { text: '工程控制论：一门关于"关系"的科学', link: '/engineering-cybernetics' },
+        ]
+      },
+
+      {
+        text: '内容创作',
+        items: [
+          { text: '网络教程视频文案编写指南', link: '/video-script-guide' },
         ]
       },
     ],
