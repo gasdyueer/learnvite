@@ -1,6 +1,6 @@
 ---
 title: Lua 脚本指南 v3.0 - 完整参考手册
-description: AviUtl 扩展编辑器 Lua 脚本的完整参考指南，包含所有函数、变量和使用示例
+description: AviUtl ExEdit2 Lua 脚本编写完整参考手册 v3.0。基于最新官方文档重构，覆盖像素操作、音频处理、着色器操作等高级功能，含粒子系统、音频可视化、3D旋转、波浪文字等实用示例，以及性能优化和故障排除指南。
 outline: deep
 ---
 

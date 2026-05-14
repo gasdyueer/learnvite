@@ -1,26 +1,145 @@
-# AGENT_PROBLEM: 向 VitePress 博客发布文章的流程、问题与解决办法
+# AGENT_PROBLEM: 向 VitePress 博客发布文章 —— 流程、问题与解决办法
 
-## 背景
+## 文章发布 SOP
 
-将外部 Markdown 文章 `工程控制论_科普文章.md` 发布到基于 VitePress 的博客站点 `learnvite`。
-
-涉及文件：
-- `docs/engineering-cybernetics.md` — 新增文章
-- `docs/.vitepress/config.mts` — 导航栏和侧边栏配置
-- `docs/index.md` — 首页（hero actions + features）
+以下是从拿到源文章到上线的完整流程。每条步骤标注了常见陷阱 → 对应"遇到的问题与解决办法"中的问题编号。
 
 ---
 
-## 发布流程
+### 阶段 1：接收源文章 & 规划
 
-1. 将源文件复制到 `docs/` 目录下，使用英文 slug 命名（`engineering-cybernetics.md`）
-2. 更新 `config.mts`：
-   - 在 `nav` 数组中添加导航链接
-   - 在 `sidebar` 数组中添加侧边栏分组及条目
-3. 更新 `index.md`：
-   - 在 `hero.actions` 中添加入口按钮
-   - 在 `features` 列表中添加功能卡片
-4. 运行 `npm run docs:build` 验证构建通过
+**输入**：源文章（本地 `.md` 文件路径或 URL）。
+
+**步骤**：
+
+1. 确定文章 **slug**（英文 kebab-case，如 `engineering-cybernetics`），源文件名只作参考
+2. 确定文章归属的**侧边栏分组**（新建 or 归入现有分组，如"科普文章""转载文章"）
+3. 确定是否需要上**首页**（`hero.actions` 入口按钮 + `features` 卡片）。判断标准：
+   - 重要原创 / 核心参考文档 → 上首页
+   - 转载文章、辅助文档 → 仅侧边栏
+
+**交付**：slug、分组归属、是否上首页 三项决策。
+
+---
+
+### 阶段 2：文章文件写入
+
+**目标**：在 `docs/<slug>.md` 创建格式规范的文章。
+
+**步骤**：
+
+1. 读取源文章全部内容（Windows 下禁止 `bash copy` → [问题 1](#问题-1windows-下-bash-copy-命令不可用)）
+2. 在 `docs/` 下创建 `<slug>.md`，通过 `write` 工具写入
+3. **必须添加 YAML frontmatter**（位于文件最顶部，`---` 包裹）：
+
+```yaml
+---
+title: <文章标题>
+description: <一句话描述，README 自动提取用>
+outline: deep
+---
+```
+
+4. 格式检查：
+   - 一级标题 `#` 只出现一次（文章标题）
+   - 代码块指定语言（````md ```lua ````）
+   - 无断裂的 frontmatter 边界 → [问题 4](#问题-4feature-卡片放到了-yaml-frontmatter-外部)
+
+**交付**：`docs/<slug>.md` 存在且 frontmatter 完整。
+
+---
+
+### 阶段 3：VitePress 配置
+
+**涉及文件**：`docs/.vitepress/config.mts`（导航 + 侧边栏）、`docs/index.md`（首页）。
+
+#### 3a. 导航栏（config.mts → `nav`）
+
+在 `nav` 数组的 `]` **之前**插入（用 `<` 而非 `+` → [问题 3](#问题-3导航条目放到了-nav-数组外部)）：
+
+```ts
+{ text: '<导航文案>', link: '/<slug>' }
+```
+
+#### 3b. 侧边栏（config.mts → `sidebar`）
+
+- **归入现有分组**：在目标分组的 `items` 数组的 `]` 之前插入
+- **新建分组**：在 `sidebar` 数组的 `]` 之前插入整组：
+
+```ts
+{
+  text: '<分组名>',
+  items: [
+    { text: '<文章标题>', link: '/<slug>' }
+  ]
+}
+```
+
+**关键**：插入后检查逗号完整性 → [问题 5](#问题-5侧边栏分组放到了-sidebar-数组外部) [问题 6](#问题-6数组元素间缺少逗号)
+
+#### 3c. 首页（index.md，可选）
+
+仅在阶段 1 判定需要时执行。
+
+- `hero.actions`：在最后一个 action 之后、`features:` 之前插入
+- `features`：在最后一个 feature 的 `details` 之后、`---` **之前**插入（注意 YAML frontmatter 边界 → [问题 4](#问题-4feature-卡片放到了-yaml-frontmatter-外部)）
+
+```yaml
+  - title: <feature 标题>
+    details: <feature 描述>
+```
+
+**交付**：`config.mts` 和 `index.md` 编辑完毕，无悬挂条目。
+
+---
+
+### 阶段 4：README 同步
+
+README 的内容列表由 `scripts/update-readme.js` 从 `docs/*.md` 的 frontmatter 自动生成。
+
+1. 确认新文章的 frontmatter 中 `title` 和 `description` 完整（阶段 2 已写入则跳过）
+2. 如需调整排序，编辑 `scripts/update-readme.js` 中的 `ORDER` 数组
+3. 运行：
+   ```bash
+   npm run update-readme
+   ```
+
+**自动化**：push 到 `main` 后，GitHub Actions 也会自动运行此脚本并提交更新，无需手动操作。
+
+**交付**：`README.md` 的 `<!-- AUTO_CONTENT_START -->` … `<!-- AUTO_CONTENT_END -->` 区域包含新文章。
+
+---
+
+### 阶段 5：本地验证
+
+```bash
+npm run docs:dev      # 启动开发服务器，逐页检查渲染效果
+npm run docs:build    # 构建验证 —— 必须零错误通过
+```
+
+检查清单：
+- [ ] `docs:build` 无 error
+- [ ] 导航栏可见新条目，点击跳转正确
+- [ ] 侧边栏可见新条目，分组正确
+- [ ] 首页 feature 卡片（如有）渲染正常
+- [ ] 文章页 frontmatter 解析正确（标题、描述出现在页面 meta 中）
+
+---
+
+### 阶段 6：提交 & 部署
+
+```bash
+git add docs/<slug>.md docs/.vitepress/config.mts docs/index.md README.md
+git commit -m "docs: add <文章标题>"
+git push
+```
+
+推送后：
+1. 等待 `Deploy VitePress site to Pages` workflow 完成（Actions tab 查看）
+2. 等待 `Update README` workflow 完成（如本地未运行 update-readme）
+3. 访问 GitHub Pages 确认上线
+
+**交付**：文章在 `https://gasdyueer.github.io/learnvite/<slug>` 可访问。
 
 ---
 
@@ -158,6 +277,7 @@ sidebar: [
 **教训**：编辑完成后应通读最终文件，清理格式残留。
 
 ---
+
 ### 问题 8：GitHub Pages 部署认证失败
 
 **现象**：GitHub Actions 中 `deploy.yml` workflow 构建成功，但 `git push` 到 `gh-pages` 分支时报错：
@@ -183,9 +303,9 @@ GitHub 拒绝了该认证，可能原因：(1) `GH_TOKEN` secret 未在仓库中
 
 **教训**：GitHub Pages 部署应优先使用官方 action（`actions/deploy-pages`），避免手写 git push 认证逻辑。自定义 token 方案在 secret 缺失或权限不足时会静默失败，排查成本高。
 
----
-
 **附加**：`deploy.yml` 中还需声明 `permissions: contents: read, pages: write, id-token: write`，否则 `GITHUB_TOKEN` 默认权限不足以完成 Pages 部署。
+
+---
 
 ## 改进建议
 
@@ -195,3 +315,4 @@ GitHub 拒绝了该认证，可能原因：(1) `GH_TOKEN` secret 未在仓库中
 4. **YAML frontmatter**：编辑 `---` 包裹的 YAML 区域时，确认插入位置在分隔符内部
 5. **自动 rebase**：不信任 `edit` 的自动锚点 rebase，尤其在 rebase 跨越数组/对象边界后
 6. **构建验证**：每次配置修改后运行 `npm run docs:build` 确保无语法/结构错误
+7. **README 同步**：发布新文章后运行 `npm run update-readme` 或依赖 GitHub Actions 自动更新

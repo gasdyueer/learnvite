@@ -1,0 +1,38 @@
+name: Update README
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    # 避免 bot 自己触发的无限循环
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: node scripts/update-readme.js
+
+      - name: Commit changes
+        run: |
+          if git diff --quiet README.md; then
+            echo "No changes to README."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: auto-update README content list [skip ci]"
+          git push
