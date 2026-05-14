@@ -1,17 +1,16 @@
 ---
-title: Lua 脚本指南 v3.0 - 完整参考手册
-description: AviUtl ExEdit2 Lua 脚本编写完整参考手册 v3.0。基于最新官方文档重构，覆盖像素操作、音频处理、着色器操作等高级功能，含粒子系统、音频可视化、3D旋转、波浪文字等实用示例，以及性能优化和故障排除指南。
-outline: deep
+title: Lua 脚本指南 v4.0 - 完整参考手册
+description: AviUtl ExEdit2 Lua 脚本编写完整参考手册 v4.0。基于官方 v2.00 beta45 文档重构，覆盖设定项目定义、像素操作、音频处理、着色器操作等全部功能，含粒子系统、音频可视化、3D旋转、波浪文字等实用示例，以及性能优化和故障排除指南。
 ---
 
-# Lua 脚本指南 v3.0
+# Lua 脚本指南 v4.0
 
 ::: info 版本信息
-- **文档版本**: 3.0
-- **最后更新**: 2025年9月21日
-- **适用版本**: AviUtl 扩展编辑器 2.00 及以上
+- **文档版本**: 4.0
+- **最后更新**: 2026年5月14日
+- **适用版本**: AviUtl 扩展编辑器 2.00 beta45 及以上
 - **语言支持**: Lua / LuaJIT
-- **技术支持**: 基于官方文档整理，包含最新功能
+- **技术支持**: 基于官方文档 v2.00 beta45 整理，包含最新功能
 :::
 
 ## 📋 目录
@@ -318,6 +317,129 @@ obj.ox = obj.ox + speed * obj.time
 obj.load("text", message)
 ```
 
+### 轨道条项目分组
+
+将2-3个轨道条项目组合为一个分组显示。
+
+```lua
+--trackgroup@变量名1,变量名2,变量名3:项目名
+```
+
+**参数说明：**
+- 变量名需先通过 `--track@` 定义
+- 需列举 2~3 个变量名
+- 项目名不在界面显示，仅作为保存数据的键名
+
+**示例：**
+```lua
+--track@x:X座标,-100000,100000,0
+--track@y:Y座标,-100000,100000,0
+--track@z:Z座标,-100000,100000,0
+--trackgroup@x,y,z:Group
+```
+
+### 轨道条项目扩展参数
+
+轨道条项目支持以下扩展参数：
+
+```lua
+--track@变量名:项目名,最小值,最大值,默认值,移动单位,零值名称,操作倍率
+```
+
+- **零值名称**: 设定值为0时轨道条上显示的字符串
+- **操作倍率**: 设定值范围对轨道条操作范围的倍率（1.0以下）
+
+### 文件夹选择项目
+
+创建文件夹路径选择器。
+
+```lua
+--folder@变量名:项目名
+```
+
+**示例：**
+```lua
+--folder@path:文件夹
+```
+
+### 复选框项目（分区）
+
+创建可折叠分区的复选框。
+
+```lua
+--checksection@变量名:项目名,默认值(true/false)
+```
+
+### 单行文本设置项目
+
+创建单行文本输入框。
+
+```lua
+--string@变量名:项目名,默认值
+```
+
+### 通用数据区域
+
+定义通用数据区域（面向脚本模块/DLL）。
+
+```lua
+--data@注册名:大小(1024字节以下)
+```
+
+通过 `obj.data("注册名")` 获取指针（userdata）。默认值为零清除的 userdata 区域。已保存数据大小不同时初始化为默认值。
+
+**示例：**
+```lua
+--data@pos:8
+local pos = obj.data("pos")
+```
+
+### 版本要求
+
+指定脚本所需的最小应用程序版本。
+
+```lua
+--require:版本号
+```
+
+**示例：**
+```lua
+--require:2003500
+```
+
+### 滤镜对象对应
+
+在脚本文件（*.anm2）开头指定后可作为滤镜对象使用。
+
+```lua
+--filter
+```
+
+滤镜对象中，对象持有帧缓冲图像。通过 `obj.getinfo("filter")` 可区分滤镜对象处理。
+
+**限制：**
+- 不可更改对象大小（结束时恢复即可）
+- 不可更改对象变量（结束时恢复即可）
+- obj.draw() 之后的滤镜会继续
+- 无参数的 obj.effect() 不处理
+
+### 设定组
+
+将后续设定项目分组显示。
+
+```lua
+--group:组名,默认显示状态(true/false)
+--group  -- 无组名表示组结束
+```
+
+### 分隔符
+
+添加分隔符线。
+
+```lua
+--separator:分隔符名
+```
+
 ### 其他设置
 
 #### 对象菜单标签
@@ -415,6 +537,11 @@ obj.load("text", message)
 | `obj.num` | 只读 | 多对象时的数量 |
 | `obj.screen_w` | 只读 | 屏幕宽度 |
 | `obj.screen_h` | 只读 | 屏幕高度 |
+| `obj.sx` | 读写 | X坐标放大率 (1.0=等倍) |
+| `obj.sy` | 读写 | Y坐标放大率 (1.0=等倍) |
+| `obj.sz` | 读写 | Z坐标放大率 (1.0=等倍) |
+| `obj.id` | 只读 | 对象ID（每次启动唯一） |
+| `obj.effect_id` | 只读 | 对象内目标效果的ID（每次启动唯一） |
 
 ## 扩展函数
 
@@ -620,16 +747,16 @@ obj.load("before")
 
 ### 字体设置
 
-#### obj.setfont(name, size[, type, col1, col2])
+#### obj.setfont(name, size[, type, col1, col2, bold, italic, charspacing, linespacing])
 
-设置文本渲染字体。
+设置文本渲染字体。脚本每次调用都需要指定。
 
 ```lua
 -- 基本设置
 obj.setfont("微软雅黑", 24)
 
 -- 完整设置
-obj.setfont("Arial", 36, 1, 0x000000, 0x888888)
+obj.setfont("Arial", 36, 1, 0x000000, 0x888888, true, false, 0, 0)
 ```
 
 **参数：**
@@ -638,6 +765,10 @@ obj.setfont("Arial", 36, 1, 0x000000, 0x888888)
 - `type` (可选): 文字装饰类型 (0-6)
 - `col1` (可选): 文字颜色
 - `col2` (可选): 阴影/描边颜色
+- `bold` (可选): 粗体 (`true`/`false`, 默认 `false`)
+- `italic` (可选): 斜体 (`true`/`false`, 默认 `false`)
+- `charspacing` (可选): 字符间距
+- `linespacing` (可选): 行间距
 
 **装饰类型：**
 - `0`: 标准文字
@@ -707,20 +838,40 @@ obj.setoption("drawtarget", "tempbuffer", 1920, 1080)
   - `"chroma"`: 色差
   - `"shadow"`: 阴影
   - `"light_dark"`: 明暗
-  - `"diff"`: 色差
+  - `"diff"`: 差分
+  - `"alpha_add"`: 颜色加权平均+Alpha加算（虚拟缓冲专用）
+  - `"alpha_max"`: 颜色加权平均+Alpha取大（虚拟缓冲专用）
+  - `"alpha_sub"`: 颜色不改+Alpha减算（虚拟缓冲专用）
+  - `"alpha_add2"`: 颜色叠加+Alpha加算（虚拟缓冲专用）
+  - `"rgba_add"`: RGBA值直接加算（Direct3D BlendState，轻量）
+::: warning
+使用合成模式会增加绘制处理负担。
+:::
 
-**缓冲区选项**
+**绘制目标**
 - `drawtarget`: 绘制目标
-  - `"tempbuffer"[,width,height]: 虚拟缓冲区
-  - `"framebuffer"`: 帧缓冲区
+  - `"tempbuffer"[,width,height]`: 虚拟缓冲（可选尺寸初始化）
+  - `"framebuffer"`: 帧缓冲
+- `draw_state`: 帧缓冲绘制状态标记 (`true`=已绘制 / `false`=未绘制)
+
+**采样器模式**
+- `sampler`: 采样器模式
+  - `"clip"`: 区域外透明 (obj.draw() 默认)
+  - `"clamp"`: 区域外边界色 (obj.drawpoly() 默认)
+  - `"loop"`: 区域外循环
+  - `"mirror"`: 区域外反转循环
+  - `"dot"`: 不插值，区域外透明
 
 **相机选项**
-- `camera_param`: 相机参数 (仅相机效果可用)
+- `camera_param`: 相机参数表（仅相机效果）
+  - `.x,.y,.z`: 相机坐标
+  - `.tx,.ty,.tz`: 目标坐标
+  - `.rz`: 相机倾斜
+  - `.ux,.uy,.uz`: 相机上方向单位向量
+  - `.d`: 相机到屏幕距离(焦距)
 
 **其他选项**
-- `draw_state`: 绘制状态 (true/false)
-- `focus_mode`: 焦点框模式
-- `sampler`: 采样器模式 ("clip"/"clamp"/"loop")
+- `focus_mode`: 焦点框模式 (`"fixed_size"`=固定大小 / `"no_resize"`=无缩放)
 
 ### 信息获取
 
@@ -768,29 +919,51 @@ local script_time = obj.getinfo("script_time")
 
 **主要选项：**
 - `script_path`: 脚本文件夹路径
-- `saving`: 是否正在输出视频 (true/false)
+- `filter`: 是否为滤镜对象处理 (`true`/`false`)
+- `saving`: 是否正在输出视频 (`true`/`false`)
 - `image_max`: 最大图像尺寸 (width, height)
-- `clock`: 应用启动后的经过时间(秒)
-- `script_time`: 脚本执行开始后的经过时间(毫秒)
+- `bpm`: BPM网格信息 (tempo, beat, offset)
+- `clock`: 应用启动后的经过时间(秒)，使用性能计数器
+- `script_time`: 脚本执行开始后的经过时间(毫秒)，使用性能计数器
+- `version`: 应用程序版本号
 
 #### obj.getvalue(target[, time, section])
 
-获取对象的值。
+获取对象的设定值。
 
 ```lua
 -- 获取轨道条值
 local track_value = obj.getvalue(0)
 local custom_value = obj.getvalue("x")
 
+-- 按变量名获取
+local val = obj.getvalue("track.vx")
+
 -- 获取特定时间的值
 local past_value = obj.getvalue("zoom", 5.0)
 ```
 
-**参数：**
-- `target`: 设置类型 (0-3, "x", "y", "z", "rx", "ry", "rz", "cx", "cy", "cz", "zoom", "alpha", "aspect", "time", "layer*")
-- `time` (可选): 特定时间点
-- `section` (可选): 区间编号
-
+**参数 target（设置类型）：**
+- `0-3`: 轨道条 0-3 的值
+- `"track.xxx"`: 变量名 xxx 的轨道条值
+- `"x","y","z"`: 基准坐标
+- `"pos"`: 基准坐标3值
+- `"rx","ry","rz"`: 基准旋转角度
+- `"angle"`: 基准旋转角度3值
+- `"cx","cy","cz"`: 基准中心坐标
+- `"center"`: 基准中心坐标3值
+- `"sx","sy","sz"`: 基准放大率 (1.0=等倍)
+- `"scale"`: 基准放大率3值
+- `"zoom"`: 基准放大率 (100=等倍) ※与 obj.zoom(1.0=等倍)不同
+- `"aspect"`: 基准宽高比
+- `"alpha"`: 基准不透明度
+- `"time"`: 对象基准时间
+- `"frame_s"`: 全局基准开始帧(整数)
+- `"frame_e"`: 全局基准结束帧(整数)
+- `"layerN.xxx"`: 第N层对象的设定值
+- `"layerN"`: 检测对象存在 (`true`/`false`)
+- `"scenechange"`: 场景切换显示比例(0.0~1.0)（仅场景切换）
+- `effect, item`: 指定效果名和设定项目名获取值
 ### 像素操作
 
 #### obj.getpixel(x, y[, type])
@@ -896,6 +1069,48 @@ obj.pixeloption("blend", 0)
 - `get`: 读取源 ("object"/"framebuffer")
 - `put`: 写入目标 ("object"/"framebuffer")
 - `blend`: 混合类型 (0=替换, 1=加算, 2=减算, 3=乘算)
+
+
+#### obj.getpixeldata(target[, format])
+
+从图像缓冲区以 RGBA(32bit) 格式读取数据。此函数面向脚本模块/DLL 进行图像处理。
+
+```lua
+data, w, h = obj.getpixeldata("object", "rgba")
+```
+
+**参数：**
+- `target`: 读取缓冲区
+  - `"object"`: 对象
+  - `"tempbuffer"`: 虚拟缓冲
+  - `"cache:xxxx"`: 缓存缓冲（xxxx为任意名称）
+  - `"framebuffer"`: 帧缓冲
+- `format`: 图像数据格式（默认 RGBA32bit）
+  - `"rgba"`: RGBA32bit / `"bgra"`: BGRA32bit
+
+**返回值：** 图像数据指针(userdata), 宽度, 高度(像素)
+
+::: warning 性能注意
+从 VRAM 读取数据，速度不快。
+:::
+
+#### obj.putpixeldata(target, data, w, h[, format])
+
+将 RGBA(32bit) 格式数据写入图像缓冲区。此函数面向脚本模块/DLL 进行图像处理。
+
+```lua
+obj.putpixeldata("object", data, w, h, "rgba")
+```
+
+**参数：**
+- `target`: 写入缓冲区（同 getpixeldata）
+- `data`: 图像数据指针(userdata)
+- `w,h`: 宽度、高度(像素)
+- `format`: 图像数据格式（默认 RGBA32bit）
+
+::: warning 性能注意
+向 VRAM 写入数据，速度不快。
+:::
 
 ### 音频处理
 
@@ -1171,6 +1386,72 @@ debug_print(string.format("位置: (%.2f, %.2f)", obj.ox, obj.oy))
 
 **参数：**
 - `text`: 调试信息文本
+
+#### print(text[,...]) / debug_print(text[,...])
+
+向日志输出指定字符串。多参数时连接输出。第一参数可指定日志级别。
+
+```lua
+print("日志显示")
+print("@error", "错误显示")
+print("@warn", "警告信息")
+print("@info", "一般信息")
+print("@verbose", "详细信息")
+```
+
+**参数：**
+- `text`: 日志字符串。第一参数可为日志级别（`"@info"`, `"@warn"`, `"@error"`, `"@verbose"`）
+
+::: tip 兼容性
+`debug_print()` 也可使用，功能相同。
+:::
+
+#### obj.data(name)
+
+获取通用数据区域指针。面向脚本模块/DLL。
+
+```lua
+local ptr = obj.data("pos")
+```
+
+**参数：**
+- `name`: 通用数据区域的注册名（需先通过 `--data@` 定义）
+
+**返回值：** 通用数据区域指针(userdata)
+
+#### obj.multiobject(num, func)
+
+将对象作为多个单独对象绘制。
+
+```lua
+local text = {"A", "B", "C"}
+local ox = 0
+obj.multiobject(#text, function()
+    obj.load("text", text[obj.index + 1])
+    obj.ox = ox
+    ox = ox + obj.w
+end)
+obj.ox = 0
+```
+
+**参数：**
+- `num`: 绘制数量
+- `func`: 每次绘制的回调函数。回调返回可改变单独对象的基准时间偏移(秒)
+
+#### obj.module(name)
+
+获取脚本模块(.mod2)的函数。
+
+```lua
+local func = obj.module("ScriptModule")
+local total = func.sum(1, 2, 3)
+```
+
+**参数：**
+- `name`: 模块名（脚本模块文件名本体）
+
+**返回值：** 脚本模块的函数表
+
 
 ## 使用示例
 
@@ -1460,51 +1741,203 @@ end
 
 ### 程序更新历史
 
+- **2026/5/10**
+  - 修正设定项目名部分显示的指定
+  - `obj.multiobject()` 回调返回值可更改单独对象基准时间
+
+- **2026/4/26**
+  - 修复 `--font@` 默认字体不存在时异常
+  - `obj.load("text.layout")` 指定对齐时返回中心坐标
+
+- **2026/4/18**
+  - `obj.load("movie")` 读取失败返回值修正（兼容）
+
+- **2026/4/12**
+  - `obj.load()` 可返回读取失败
+  - `obj.load()` 添加 `"movie.frame"`, `"movie.info"`, `"text.layout"` 指定
+  - `obj.load()` 读取失败时清除对象图像
+
+- **2026/4/5**
+  - `obj.load("text")` 添加对齐种类参数
+  - `obj.getvalue()` 添加 `"pos"`, `"angle"`, `"center"`, `"scale"` 指定
+  - 添加 `--separator@` 定义
+  - 修复 `--separator@` 定义导致脚本无法运行
+
+- **2026/3/29**
+  - 修复 `error()` 无 message 参数时崩溃
+  - `obj.setoption("blend")` 无合成模式指定时设为普通
+
+- **2026/3/22**
+  - `obj.multiobject()` 结束时恢复原 obj.index/obj.num 值
+  - `obj.getpoint("default")` 添加移动模式指定
+  - `--track@` 定义添加零值名称、操作倍率参数
+  - 设定项目名可仅显示部分
+
+- **2026/3/14**
+  - `print()` 函数输出日志（`debug_print()` 同样功能）
+  - 修复 `obj.setoption("blend","alpha_sub")` 计算
+  - 添加 `--trackgroup@` 定义
+  - `obj.setanchor()` 添加多轨道条变量参照指定
+  - `obj.pixelshader()`, `obj.computeshader()` 添加其他脚本着色器定义引用
+  - 添加 `obj.getpoint("default")`
+
+- **2026/3/8**
+  - 修复空对象时 `obj.load("tempbuffer",x,y,w,h)` 区域指定未反映
+  - 添加 `obj.multiobject()`（obj.index/obj.num 在回调内变更）
+  - `obj.setanchor()` 添加 `"small"`, `"mesh"`, `"rgba"`, 默认坐标指定
+  - `obj.setoption("blend")` 添加 `"rgba_add"`
+  - `obj.setoption("focus_mode")` 添加 `"no_resize"`
+  - 添加 `--checksection@` 定义
+
+- **2026/2/28**
+  - obj.index/obj.num 可变更
+  - 添加 `--require@` 定义
+
+- **2026/2/23**
+  - 修复 `obj.load("textlayout")` 清除对象参数问题
+
+- **2026/2/8**
+  - `obj.id` 值改为绘制目标对象 ID
+  - `obj.getvalue()` 添加效果·设定项目名指定
+  - `obj.setfont()` 添加粗体、斜体、字间距、行间距参数
+  - `obj.load()` 添加 `"textlayout"` 指定
+
+- **2026/1/25**
+  - `obj.getvalue()` 添加 `"track.xxx"` 指定
+  - 添加 `--string@` 定义
+
+- **2026/1/17**
+  - 修复对象为场景切换目标时 obj.frame/obj.time 值
+
+- **2026/1/12**
+  - 添加 `--folder@` 定义
+
+- **2026/1/11**
+  - 修复 `obj.getoption("gui")` 返回值
+  - `obj.clearbuffer()` 添加尺寸变更参数
+
+- **2025/12/27**
+  - 修复滤镜对象 `obj.effect()` 未作为滤镜效果处理
+  - 修复对象输出为基本输出时虚拟缓冲 `obj.draw()` 未处理
+  - 轨道条移动脚本 `--param` 可多行指定
+
+- **2025/12/14**
+  - 添加 `--filter` 定义和 `obj.getinfo("filter")`（滤镜对象支持）
+
+- **2025/12/7**
+  - 添加 `obj.getinfo("bpm")`
+
+- **2025/12/6**
+  - `obj.getvalue()` 添加 `"frame_s"`, `"frame_e"` 指定
+
+- **2025/12/2**
+  - `--group` 添加组结束设定
+
+- **2025/11/30**
+  - 添加 `--group` 定义
+  - `obj.getpoint("timecontrol")` 添加参数
+
+- **2025/11/22**
+  - `obj.setoption("sampler")` 添加采样器种类
+
+- **2025/11/16**
+  - 添加 `obj.sx`, `obj.sy`, `obj.sz`
+  - `obj.getvalue()` 添加 `"sx"`, `"sy"`, `"sz"` 指定
+
+- **2025/11/8**
+  - 修复组控制中脚本 `obj.draw()` 绘制异常
+  - 修复 `obj.getvalue("scenechange")` 精度
+  - `obj.computeshader()` 添加采样器指定
+  - `obj.pixelshader()`, `obj.computeshader()` 资源添加 `"random"`
+  - 添加 `obj.data()`, `--data@` 定义
+
+- **2025/11/2**
+  - `--dialog` `/chk` 返回 number 型
+  - 添加 `obj.effect_id`
+
+- **2025/11/1**
+  - 调整 `obj.rand1()` 随机数范围
+  - `obj.pixelshader()` 添加采样器指定
+  - 添加像素着色器定义说明
+  - 复选框项目定义添加 boolean 型指定
+  - 添加 `obj.getoption("track_mode")` 说明
+
+- **2025/10/26**
+  - 修正 `obj.rand()` 最大最小值参数精度
+  - 添加 `obj.rand1()`
+
+- **2025/10/19**
+  - 修复无对象时 `obj.getpixel()` 无参数返回值
+  - `obj.getvalue()` 添加对象存在确认指定
+
+- **2025/10/12**
+  - 添加 `obj.module()`
+  - `obj.getaudio()` 添加声道指定
+
+- **2025/10/5**
+  - 修复文本设定项目反斜杠字符变量反映
+  - 添加 `obj.id`
+
+- **2025/9/27**
+  - 修复文本设定项目双引号字符变量反映
+  - 添加 `obj.getpixeldata()`, `obj.putpixeldata()`
+  - 添加 `obj.getinfo("version")`
+
 - **2025/9/21**
-  - 添加文本设置项目 (`--text@`)
-  - 新增 `obj.getvalue()` 对基准中心坐标的支持
-  - `obj.drawpoly()` 新增顶点列表绘制方法
-  - `obj.getinfo()` 新增环境信息获取功能
-  - 修复 `obj.getvalue("layer.x")` 在指定图层无对象时的处理
-  - 修复场景变换脚本中 `obj.setanchor()` 的使用
+  - 修复 `obj.getvalue("layer.x")` 图层无对象时返回值
+  - 修复场景切换脚本 `obj.setanchor()` 使用
+  - 添加 `--text@` 文本设定项目
+  - `obj.getvalue()` 添加 `"cx"`, `"cy"`, `"cz"` 指定
+  - `obj.drawpoly()` 添加顶点列表表格指定方法
+  - 添加 `obj.getinfo("clock")`, `obj.getinfo("script_time")`
 
 - **2025/9/13**
-  - 修复脚本控制和脚本文件对包含库的选择
-  - 修复 `obj.copybuffer()` 更新对象时部分 `obj` 变量未正确更新
-  - 修复 `obj.layer` 值反映绘制目标对象的图层位置
-  - 修复 `obj.drawpoly()` 数组指定时的坐标渲染
-  - 新增 `obj.getinfo("clock")` 和 `obj.getinfo("script_time")` 函数
+  - 脚本控制/脚本文件按种别变更包含库
+  - 修复 `obj.copybuffer()` 更新对象时部分 obj 变量变更被丢弃
+  - `obj.layer` 值改为绘制目标对象图层编号
+  - 修复 `obj.drawpoly()` 数组指定(坐标+色+法线)绘制
+  - `obj.drawpoly()` 添加顶点列表表格指定
 
 - **2025/9/7**
-  - 修复 `obj.setanchor()` 对直接表格变量指定时的崩溃
-  - 修复脚本控制中不必要的 Lua 库函数包含
+  - 修复 `obj.setanchor()` 直接表格变量指定时崩溃
+  - 脚本控制移除不必要的 Lua 库函数
 
 - **2025/8/30**
-  - 修复轨道条移动脚本中 `obj.rand()` 默认种子计算的问题
-  - 修复文本单独对象显示时机未反映到 `obj` 变量的问题
+  - 修正轨道条移动脚本 `obj.rand` 默认种子计算
+  - 修复文本单独对象显示时机未反映到 obj 变量
 
 - **2025/8/24**
-  - 修复输出日志可能导致崩溃的问题
-  - 改进 `obj.getpixel()` 的缓存处理并添加处理说明
-  - 新增 `obj.putpixel()` 和 `obj.copypixel()` 函数
+  - 修复输出日志内容导致崩溃
+  - 修复/添加 `obj.getpixel()` 缓存处理说明
+  - 添加 `obj.putpixel()`, `obj.copixel()`
   - 扩展 `obj.pixeloption()` 选项
-  - 修复 `obj.setoption()` 合成模式的部分处理问题
+  - 修正 `obj.setoption()` 合成模式部分处理
 
 - **2025/8/10**
-  - 修复 `obj.copybuffer()` 在复制图像文件时不能正确反映的问题
-  - 修复更新对象时 `obj` 变量未更新的问题
-  - 修复对象图像不存在时 `obj.drawpoly()` 可能导致崩溃的问题
+  - 修复 `obj.copybuffer()` 图像文件复制未反映
+  - 修复 `obj.copybuffer()` 更新对象时 obj 变量未更新
+  - 修复无图像时 `obj.drawpoly()` 崩溃
 
 - **2025/8/3**
-  - 添加 `obj.effect()` 参数值为数值类型时的处理措施
+  - 添加 `obj.effect()` 参数值为数值型时的处理
 
 - **2025/7/27**
-  - 修复虚拟缓冲区和缓存缓冲区不能正确生成的问题
+  - 修复虚拟缓冲/缓存缓冲生成问题
 
 - **2025/7/12**
-  - 新增 `copybuffer()` 函数的复制目标类型
+  - `copybuffer()` 添加复制目标种别
 
 ### 文档更新历史
+
+- **2026/5/14** v4.0 - 同步至官方 v2.00 beta45
+  - 添加 `--trackgroup@`, `--folder@`, `--data@`, `--checksection@`, `--separator@`, `--require@`, `--string@` 设定项目
+  - 添加 `obj.getpixeldata()`, `obj.putpixeldata()`, `obj.data()`, `obj.multiobject()`, `obj.module()`, `print()` 函数文档
+  - 更新 `obj.setfont()` 新参数(粗体/斜体/字间距/行间距)
+  - 更新 `obj.setoption("blend")` 完整合成模式列表
+  - 更新 `obj.getinfo()` 新信息类型
+  - 更新 `obj.getvalue()` 完整 target 类型
+  - 更新内置变量表(`obj.sx/sy/sz/id/effect_id`)
+  - 完整更新程序更新历史至 beta45
 
 - **2025/9/21** v3.0.1 - 更新至最新官方文档
   - 添加文本设置项目 (`--text@`)
@@ -1521,18 +1954,6 @@ end
   - 新增像素操作、音频处理、着色器操作等最新功能
   - 扩展使用示例和高级技巧
   - 完善错误处理和性能优化建议
-
-- **2024/08/22** v2.0 - 文档重构
-  - 补充完整的像素操作函数
-  - 添加锚点操作说明
-  - 完善所有使用示例
-  - 优化文档结构和格式
-  - 添加高级技巧章节
-
-- **2023/XX/XX** v1.0 - 初始版本发布
-  - 基于官方文档翻译整理
-  - 基础功能说明
-  - 基本使用示例
 
 ---
 
