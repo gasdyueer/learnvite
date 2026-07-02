@@ -18,6 +18,7 @@ export default defineConfig({
       { text: 'AviUtl2 指南', link: '/aviutl2-guide' },
       { text: '工程控制论', link: '/engineering-cybernetics' },
       { text: '视频文案', link: '/video-script-guide' },
+      { text: 'VNL 加速', link: '/vnl-acceleration-guide' },
     ],
 
     sidebar: [
@@ -54,6 +55,12 @@ export default defineConfig({
         text: '内容创作',
         items: [
           { text: '网络教程视频文案编写指南', link: '/video-script-guide' },
+        ]
+      },
+      {
+        text: '游戏技巧',
+        items: [
+          { text: 'CS:GO VNL 加速深度教学', link: '/vnl-acceleration-guide' },
         ]
       },
     ],
